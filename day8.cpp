@@ -19,6 +19,7 @@ int  solvep1(std::string filename, int part) {
     int countLine = 0;
     int index = 0;
     int result = 0;
+    int result2 = 0;
 
     for (std::string line; std::getline(file,line);) {
 
@@ -33,25 +34,21 @@ int  solvep1(std::string filename, int part) {
             isVisible[countLine].push_back(false);
 
             // from left
-            // std::cout << line[i] << " vs " << biggestTree[countLine][i>0 ? i-1 : i].first << std::endl;
             if ( line[i] > biggestTree[countLine][i>0 ? i-1 : i].first) {
                 biggestTree[countLine][i].first = line[i];
                 if (isVisible[countLine][i]) continue;
                 isVisible[countLine][i] = true;
                 result += 1;
-                // std::cout << "left: " << line[i] << " visible at [" << countLine << "," << i << "]" << std::endl;
             } else {
                 biggestTree[countLine][i].first = biggestTree[countLine][i-1].first;
             }
 
             // from top
-            // std::cout << static_cast<char>(line[i]) << " vs " << static_cast<char>(biggestTree[countLine>0 ? countLine-1 : countLine][i].second) << std::endl;
             if ( (line[i] > biggestTree[countLine>0 ? countLine-1 : countLine][i].second) ){
                 biggestTree[countLine][i].second = line[i];
                 if (isVisible[countLine][i]) continue;
                 isVisible[countLine][i] = true;
                 result += 1;
-                // std::cout << "top: " << line[i] << " visible at [" << countLine << "," << i << "]" << std::endl;
             } else {
                 biggestTree[countLine][i].second = biggestTree[countLine-1][i].second;
             }
@@ -67,12 +64,13 @@ int  solvep1(std::string filename, int part) {
     biggestTree.clear();
     int nbLines = isVisible.size() - 1;
     int tmpTree = 0;
-    int part2Index = 0;
-    std::vector<int> viewScore(4);
+    int lineIndex,colIndex = 0;
+    bool stop = true;
+    std::vector<int> viewScore(4,0);
+    std::vector<bool> continueExploration(4,true);
 
     for (std::string line : lineBuffer) {
 
-        // std::cout << line  << std::endl;
         biggestTree.push_back(std::vector<std::pair<int, int>>());
 
         for (int i = line.length(); i>0; i--) {
@@ -80,26 +78,22 @@ int  solvep1(std::string filename, int part) {
             biggestTree[countLine].push_back({-1, -1});
             index = line.length() - i;
             // from right
-            // std::cout << "right: " << line[i-1] << " vs " << static_cast<char>(biggestTree[countLine][index>0 ? index-1 : index].first) << std::endl;
             if ( line[i-1] > biggestTree[countLine][index>0 ? index-1 : index].first) {
                 biggestTree[countLine][index].first = line[i-1];
                 if (!isVisible[nbLines-countLine][i-1]) {
                     isVisible[nbLines-countLine][i-1] = true;
                     result += 1;
-                    // std::cout << "right: " << line[i-1] << " visible at [" << nbLines-countLine << "," << i-1 << "]" << std::endl;
                 }
             } else {
                 biggestTree[countLine][index].first = biggestTree[countLine][index-1].first;
             }
 
             // from bot
-            // std::cout << "bot: " << line[i-1] << " vs " << static_cast<char>(biggestTree[countLine>0 ? countLine-1 : countLine][index].second) << std::endl;
             if ( (line[i-1] > biggestTree[countLine>0 ? countLine-1 : countLine][index].second) ){
                 biggestTree[countLine][index].second = line[i-1];
                 if (!isVisible[nbLines-countLine][i-1]) {
                     isVisible[nbLines-countLine][i-1] = true;
                     result += 1;
-                    // std::cout << "bot: " << line[i-1] << " visible at [" << nbLines-countLine << "," << i-1 << "]" << std::endl;
                 }
             } else {
                 biggestTree[countLine][index].second = biggestTree[countLine-1][index].second;
@@ -108,15 +102,50 @@ int  solvep1(std::string filename, int part) {
             if (part == 2) {
 
                 tmpTree = line[i-1];
-                part2Index = i;
+                lineIndex = i-1;
+                colIndex = countLine;
+                viewScore.clear();
+                viewScore.resize(4,0);
+                continueExploration.clear();
+                continueExploration.resize(4,true);
 
                 for (int j=1; j<line.length(); j++) {
-                    if ((i-1+j) < line.length() && line[i-1+j] <) viewScore[0]++;
+                    stop = true;
+
+                    //right
+                    if ((lineIndex+j) < line.length() && continueExploration[0]) {
+                        viewScore[0]++;
+                        stop = false;
+                        if (line[lineIndex+j] >= tmpTree) continueExploration[0] = false;
+                    }
+
+                    //left
+                    if ( ((lineIndex-j) >= 0) && continueExploration[1]) {
+                        viewScore[1]++;
+                        stop = false;
+                        if (line[lineIndex-j] >= tmpTree) continueExploration[1] = false;
+                    }
+
+                    //top
+                    if ( ((colIndex+j) <= nbLines) && continueExploration[2]) {
+                        viewScore[2]++;
+                        stop = false;
+                        if (lineBuffer[colIndex+j][i-1] >= tmpTree) continueExploration[2] = false;
+                    }
+
+                    //bot
+                    if ( ((colIndex-j) >= 0) && continueExploration[3] ) {
+                        viewScore[3]++;
+                        stop = false;
+                        if (lineBuffer[colIndex-j][i-1] >= tmpTree) continueExploration[3] = false;
+                    }
+
+                    if (stop) break;
+                    
                 }   
          
-                if (viewScore[0]*viewScore[1]*viewScore[2]*viewScore[3] > result) {
-                    result = viewScore[0]*viewScore[1]*viewScore[2]*viewScore[3];
-                    std::cout << result << " at [" << nbLines-countLine << ',' << i-1 << "]" << std::endl;
+                if (viewScore[0]*viewScore[1]*viewScore[2]*viewScore[3] > result2) {
+                    result2 = viewScore[0]*viewScore[1]*viewScore[2]*viewScore[3];
                 }
             }
         }
@@ -124,11 +153,8 @@ int  solvep1(std::string filename, int part) {
         countLine++;
     }
 
-    if (part == 2) {
-
-    }
-
-    return result;
+    if (part == 1) return result;
+    else return result2;
 }
 
 

@@ -28,7 +28,7 @@ struct Step {
 };
 
 void explore (  std::stack<Step>& stack, std::vector<std::string>& map, 
-                std::vector<std::vector<std::pair<bool,int>>>& isVisited)
+                std::vector<std::vector<std::pair<bool,int>>>& isVisited, int part)
 {
     Step step = stack.top();
     stack.pop();
@@ -37,8 +37,9 @@ void explore (  std::stack<Step>& stack, std::vector<std::string>& map,
 
     if (step.from == -1) {
         // first move
+        if (part == 2) step.steps = 0;
+
         for (int i=0; i<moves.size();i++) {
-            // std::cout << " | first move" << std::endl;
             stack.push(Step(step.x+moves[i].first,step.y+moves[i].second,i,step.steps+1));
         }
         return;
@@ -46,23 +47,24 @@ void explore (  std::stack<Step>& stack, std::vector<std::string>& map,
 
     //check out of bound
     if ( (step.x < 0) || (step.x >= map.size()) || (step.y < 0) || (step.y >= map[0].size()) ) {
-        // std::cout << " | oob" << std::endl;
         return;
+    }
+        
+    if (part == 2) {
+        if (map[step.x][step.y] == 'a') step.steps = 0;
     }
 
     // check if move is authorized
-    if ( (map[step.x][step.y] != 'a') && 
+    if ( ((map[step.x][step.y] != 'a') && 
          ((map[step.x][step.y] - map[step.x - moves[step.from].first][step.y - moves[step.from].second]) > 1) )
+         || (( map[step.x][step.y] == 'E') && ( (map[step.x][step.y] - map[step.x - moves[step.from].first][step.y - moves[step.from].second]) != -53)) ) 
     {
-        // std::cout << " | unauthorized" << std::endl;
         return;
     }
     
-
     // check if end
     if (map[step.x][step.y] == 'E' ) {
         
-        std::cout << "end reached with " << step.steps << " steps" << std::endl;
         if (!isVisited[step.x][step.y].first) {
             isVisited[step.x][step.y].first = true;
             isVisited[step.x][step.y].second = step.steps;
@@ -74,19 +76,15 @@ void explore (  std::stack<Step>& stack, std::vector<std::string>& map,
 
     if ( isVisited[step.x][step.y].first && (isVisited[step.x][step.y].second <= step.steps) ) {
         // visited and steps is already less
-        // std::cout <<  " | visited" << std::endl;
         return;
     }
     
-    // std::cout << "exploring [" << step.x << "," << step.y << "] from " << step.from << std::endl;
-
     isVisited[step.x][step.y].first = true;
     isVisited[step.x][step.y].second = step.steps;
 
     for (int i=0; i<moves.size();i++) {
 
         if (i == (moves.size() - step.from - 1) ) continue;
-        // std::cout << " | moving to " << i << std::endl;
         stack.push(Step(step.x+moves[i].first,step.y+moves[i].second,i,step.steps+1));
     }
 
@@ -117,11 +115,6 @@ int solve (std::string filename, int part) {
         countLine++;
     }
 
-    // map to know which node is visited
-
-    // for (std::string line : map) {
-    //     std::cout << line << std::endl;
-    // }
     std::cout << "[" << startPos.first << "," << startPos.second << "] | [" << endPos.first << "," << endPos.second << "]" << std::endl;
 
     std::vector<std::vector<std::pair<bool,int>>> isVisited(countLine,std::vector<std::pair<bool,int>>(map[0].length(), {false,0}));
@@ -130,9 +123,7 @@ int solve (std::string filename, int part) {
     stack.push(Step(startPos.first,startPos.second,-1,0));
 
     while (!stack.empty()) {
-
-        // std::cout << "exploring [" << stack.top().x << "," << stack.top().y << "] from " << stack.top().from;
-        explore(stack,map,isVisited);
+        explore(stack,map,isVisited,part);
     }
 
     return isVisited[endPos.first][endPos.second].second;

@@ -50,9 +50,7 @@ void explore (  std::stack<Step>& stack, std::vector<std::string>& map,
         return;
     }
         
-    if (part == 2) {
-        if (map[step.x][step.y] == 'a') step.steps = 0;
-    }
+    if ( (part == 2) && (map[step.x][step.y] == 'a') ) step.steps = 0;
 
     // check if move is authorized
     if ( ((map[step.x][step.y] != 'a') && 
@@ -114,8 +112,6 @@ int solve (std::string filename, int part) {
 
         countLine++;
     }
-
-    std::cout << "[" << startPos.first << "," << startPos.second << "] | [" << endPos.first << "," << endPos.second << "]" << std::endl;
 
     std::vector<std::vector<std::pair<bool,int>>> isVisited(countLine,std::vector<std::pair<bool,int>>(map[0].length(), {false,0}));
     

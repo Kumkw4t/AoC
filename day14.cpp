@@ -21,21 +21,19 @@ struct Point {
     int y;
 };
 
-bool fill (std::deque<std::deque<bool>> &map,int startY) {
+bool fill (std::deque<std::deque<bool>> &map,int startY, int part, int& grewLeft) {
 
     Point res(0,startY);
-    // std::cout << "start Y: " << startY << std::endl;
+    grewLeft = 0;
 
     while (true) {
         while ((res.x < (map.size()-1)) && !map[res.x+1][res.y]) {
             // chute libre
-            std::cout << "[" << res.x << "," << res.y << "]: " << map[res.x][res.y] << std::endl;
             res.x++; 
         }
        
-        if (res.x == (map.size()-1)) {
-            std::cout << "bottom reached" << std::endl;
-            return false;
+        if ((part == 1) && (res.x == (map.size()-1))) {
+            if (part == 1) return false;
         }
         
         if (res.y > 0) {
@@ -46,7 +44,7 @@ bool fill (std::deque<std::deque<bool>> &map,int startY) {
                 continue;
             }
 
-            if (res.y < map[0].size()) {
+            if (res.y < (map[0].size()-1)) {
                 if (!map[res.x+1][res.y+1]) {
                     // diagonale right
                     res.x++;
@@ -54,17 +52,33 @@ bool fill (std::deque<std::deque<bool>> &map,int startY) {
                     continue;
                 } else {
                     // no more moves available
-                    std::cout << "filling [" << res.x << "," << res.y << "]" << std::endl;
                     map[res.x][res.y] = true;
+
+                    if ((res.x == 0) && (res.y == startY) && (part == 2)) return false;
+                    
                     return true;
                 }
             } else {
                 // oob = into the void
-                return false;
+                if (part == 1) return false;
+
+                // part 2 grow map
+                for (std::deque<bool> &mapLine : map) {
+                    mapLine.push_back(false);
+                }
+                map[map.size()-1][map[0].size()-1] = true;
             }
         } else {
             // oob = into the void
-            return false;
+            if (part == 1) return false;
+
+            // part 2, grow map
+            for (std::deque<bool> &mapLine : map) {
+                mapLine.push_front(false);
+            }
+            grewLeft++;
+            map[map.size()-1][0] = true;
+            res.y++;
         }
     }
 
@@ -89,11 +103,9 @@ int solve (std::string filename, int part) {
         p1.x = std::stoi(line.substr(index+1));
 
         minY = std::min(minY, p1.y);
-        // minX = std::min(minX, p1.x);
 
         while (index < line.length()) {
 
-            // std::cout << " === " << index << " | " << line.length() << " === " << std::endl;
             index = line.find('-',index) + 3;
             p2.y = p1.y;
             p2.x = p1.x;
@@ -107,46 +119,40 @@ int solve (std::string filename, int part) {
             maxPY = std::max(p1.y,p2.y);
             maxPX = std::max(p1.x,p2.x);
 
-            // std::cout << "P1 [" << p1.x << "," << p1.y << "] | P2 [" << p2.x << "," << p2.y << "]" << std::endl;
-
             // column index is lower than previous ones, growing map
             while (minY > minPY) {
-                // std::cout << "lower Y! " << p1.y << " vs " << minY << std::endl;
                 minY--;
                 for (std::deque<bool> &mapLine : map) {
                     mapLine.push_front(false);
                 }
             }
 
-            // std::cout << "MinX: " << minX << " | MinY: " << minY << std::endl;
             while ((maxPY - minY) >= map[0].size()) {
-                // std::cout << "larger Y! " << maxPY-minY << " vs " << map[0].size();
                 for (std::deque<bool> &mapLine : map) {
                     mapLine.push_back(false);
                 }
-                // std::cout << " -> new size: " << map[0].size() << std::endl;
             }
 
             while ((maxPX - minX) >= map.size()) {
-                // std::cout << "larger X! " << p1.x-minX << " vs " << map.size() << std::endl;
                 map.push_back(std::deque<bool>(map[0].size(),false));
             }
 
-            // std::cout << "current size: " << map.size() << "," << map[0].size() << std::endl;
             if (p1.x == p2.x) {
-                // std::cout << "X are equal" << std::endl;
                 for (int i = (minPY-minY); i <= (maxPY-minY); i++) {
-                    // std::cout << "adding [" << p1.x-minX << "," << i << "]" << std::endl;
                     map[p1.x-minX][i] = true;
                 }
             } else {
-                // std::cout << "Y are equal" << std::endl;
                 for (int i = (minPX-minX); i <= (maxPX-minX); i++) {
-                    // std::cout << "adding [" << i << "," << p1.y-minY << "]" << std::endl;
                     map[i][p1.y-minY] = true;
                 }
             }
         }
+    }
+
+    // floor
+    if (part == 2) {
+        map.push_back(std::deque<bool>(map[0].size(),false));
+        map.push_back(std::deque<bool>(map[0].size(),true));
     }
 
     for (std::deque<bool> mapLine : map) {
@@ -157,12 +163,18 @@ int solve (std::string filename, int part) {
         std::cout << std::endl;
     }
 
-    bool out = fill(map,500-minY);
+    int grew = 0;
+    bool out = fill(map,500-minY,part,grew);
     while (out) {
-        out = fill(map,500-minY);
+        out = fill(map,500-minY,part,grew);
+        while (grew > 0) {
+            minY--;
+            grew--;
+        }
         result++;
     }    
 
+    if (part == 2) result++;
     return result;
 }
 
